@@ -1,46 +1,57 @@
+var config = {
+
+    port: 1338,
+    fps: 10,
+
+    //time to live [s]
+    ttl: 5
+
+};
+
+
+
 var WebSocketServer = require('websocket').server;
 var http = require('http');
 
-var server = http.createServer(function(request, response) {
-    // process HTTP request. Since we're writing just WebSockets server
-    // we don't have to implement anything.
-
+var httpServer = http.createServer(function(request, response) {
     response.end(JSON.stringify(galleries,null,4));
 });
-server.listen(1338, function() { });
 
-// create the server
+
+httpServer.listen(port, function() { });
+
+
+
 wsServer = new WebSocketServer({
-    httpServer: server
+    httpServer: httpServer
 });
 
 
+
+
+var users = {};
 var galleries = {};
 
 
-// WebSocket server
+
+
+
+//============================================================================Messages
 wsServer.on('request', function(request) {
+
     var connection = request.accept(null, request.origin);
 
 
-
-    var gallery;// = 'xxx'.Math.random();
-    var session = 'xxx'+Math.random();
-
-
-
-
-    /*setInterval(function () {
-        connection.sendUTF('KUK');
-    },1000);*/
+    var session = 'xxx'+Math.random();//todo guid
+    users[session] = {
+        connection: connection,
+        gallery: null
+    };
+    var user = users[session];
 
 
 
 
-
-
-    // This is the most important callback for us, we'll handle
-    // all messages from users here.
     connection.on('message', function(message) {
         if (message.type === 'utf8') {
             // process WebSocket message
@@ -51,51 +62,114 @@ wsServer.on('request', function(request) {
 
             }catch(error){
 
-                connection.sendUTF('Wrong message!');
+                connection.sendUTF(JSON.stringify({
+                    error: 'Message must be valid JSON.'
+                }));
 
             }
 
 
-
-
-
-            if(message.type=='initial'){
-
-                if(typeof message.gallery!=='string'){
-                    connection.sendUTF('Initial request should contain gallery.');
-                    return;
-                }
-
-
-                gallery = message.gallery;
-                //session = 'xxx'+Math.random();//todo guid
-
-                galleries[gallery] = galleries[gallery] || {};
-                galleries[gallery][session] = galleries[gallery][session] || {};
-
-                connection.sendUTF('You are in gallery '+gallery+' with session '+session);
-
-            }else
-            if(message.type=='position'){
-
-                galleries[gallery][session].position = message.position;
-
+            if("gallery" in message){
+                user.gallery = gallery;
             }
 
 
 
-            //console.log(message);
-            //connection.sendUTF('You said: '+message.utf8Data);
+            if(user.gallery){
 
 
+                galleries[user.gallery] = galleries[user.gallery] || {};
+                galleries[user.gallery][session] = galleries[user.gallery][session] || {};
+
+                ['position','message','name'].forEach(function (key) {
+                    if(key in message){
+                        galleries[user.gallery][session][key] = message[key];
+                    }
+                });
+
+                galleries[user.gallery][session].timestamp = new Date()/1000;
+
+
+            }else{
+                connection.sendUTF(JSON.stringify({
+                    warn: 'You should define gallery before you update your state.'
+                }));
+            }
 
         }
     });
 
+
+
     connection.on('close', function(connection) {
-        // close user connection
+
+        if(user.gallery) {
+            delete galleries[user.gallery][session];
+        }
+
+        delete users[session];
+
     });
+
 });
+//============================================================================
 
 
-console.log('all done');
+
+//============================================================================Loop
+setInterval(function () {
+
+    users.forEach(function (user) {
+
+        if(user.gallery){
+
+            //todo filter
+            user.connection.sendUTF(JSON.stringify(galleries[user.gallery]));
+
+        }else{
+
+            user.connection.sendUTF(JSON.stringify({
+                warn: 'You should define gallery before you can get state of other users.'
+            }));
+        }
+    });
+
+ },1000/fps);
+//============================================================================
+
+
+
+//============================================================================Garbage collector
+setInterval(function () {
+
+    var time = new Date()/1000;
+    var gallery, session;
+    for(gallery in galleries){
+        for(session in galleries[gallery]){
+
+            if(galleries[gallery][session].time<time-config.ttl){
+
+                delete galleries[gallery][session];
+                if(session in users){
+                    users[session].connection.sendUTF(JSON.stringify({
+                        warn: 'You was removed because of ttl'
+                    }));
+
+                }else{
+                    console.warn('User '+session+' was removed because of ttl and unclosed connection.');
+                }
+
+            }
+
+
+        }
+    }
+
+
+},1000*config.ttl);
+//============================================================================
+
+
+
+
+console.log('WS server running on '+port);
