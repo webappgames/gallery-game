@@ -1,7 +1,7 @@
 var config = {
 
     port: 1338,
-    fps: 10,
+    fps: 0.5,
 
     //time to live [s]
     ttl: 5
@@ -18,7 +18,7 @@ var httpServer = http.createServer(function(request, response) {
 });
 
 
-httpServer.listen(port, function() { });
+httpServer.listen(config.port, function() { });
 
 
 
@@ -70,7 +70,7 @@ wsServer.on('request', function(request) {
 
 
             if("gallery" in message){
-                user.gallery = gallery;
+                user.gallery = message.gallery;
             }
 
 
@@ -119,22 +119,24 @@ wsServer.on('request', function(request) {
 //============================================================================Loop
 setInterval(function () {
 
-    users.forEach(function (user) {
 
-        if(user.gallery){
+    for(var session in users){
+        if(users[session].gallery){
 
             //todo filter
-            user.connection.sendUTF(JSON.stringify(galleries[user.gallery]));
+            users[session].connection.sendUTF(JSON.stringify(galleries[users[session].gallery]));
 
         }else{
 
-            user.connection.sendUTF(JSON.stringify({
+            users[session].connection.sendUTF(JSON.stringify({
                 warn: 'You should define gallery before you can get state of other users.'
             }));
         }
-    });
 
- },1000/fps);
+    }
+
+
+ },1000/config.fps);
 //============================================================================
 
 
@@ -142,12 +144,14 @@ setInterval(function () {
 //============================================================================Garbage collector
 setInterval(function () {
 
-    var time = new Date()/1000;
+    //console.log('Garbage collector running...');
+    var timestamp = new Date()/1000;
     var gallery, session;
     for(gallery in galleries){
         for(session in galleries[gallery]){
 
-            if(galleries[gallery][session].time<time-config.ttl){
+
+            if(timestamp-galleries[gallery][session].timestamp>config.ttl){
 
                 delete galleries[gallery][session];
                 if(session in users){
@@ -172,4 +176,4 @@ setInterval(function () {
 
 
 
-console.log('WS server running on '+port);
+console.log('WS server running on '+config.port);
