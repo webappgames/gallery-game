@@ -35,6 +35,17 @@ var galleries = {};
 
 
 
+function createGuid() {
+    function s4() {
+        return Math.floor((1 + Math.random()) * 0x10000)
+            .toString(16)
+            .substring(1);
+    }
+    return s4() + s4() + '-' + s4() + '-' + s4() + '-' +
+        s4() + '-' + s4() + s4() + s4();
+}
+
+
 
 //============================================================================Messages
 wsServer.on('request', function(request) {
@@ -42,7 +53,7 @@ wsServer.on('request', function(request) {
     var connection = request.accept(null, request.origin);
 
 
-    var session = 'xxx'+Math.random();//todo guid
+    var session = createGuid();
     users[session] = {
         connection: connection,
         gallery: null
@@ -81,7 +92,7 @@ wsServer.on('request', function(request) {
                 galleries[user.gallery] = galleries[user.gallery] || {};
                 galleries[user.gallery][session] = galleries[user.gallery][session] || {};
 
-                ['position','message','name'].forEach(function (key) {
+                ['name','message','position','rotation'].forEach(function (key) {
                     if(key in message){
                         galleries[user.gallery][session][key] = message[key];
                     }
