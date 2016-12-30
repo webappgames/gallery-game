@@ -1,7 +1,7 @@
 var config = {
 
-    port: 1338,
-    fps: 0.5,
+    port: 1357,
+    fps: 10,
 
     //time to live [s]
     ttl: 5
