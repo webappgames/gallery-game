@@ -130,12 +130,25 @@ wsServer.on('request', function(request) {
 //============================================================================Loop
 setInterval(function () {
 
+    var all_players,all_players_not_me,player;
 
     for(var session in users){
         if(users[session].gallery){
 
+
+
+            all_players = galleries[users[session].gallery];
+            all_players_not_me = {};
+
+            for(player in all_players){
+                if(player!=session) {
+                    all_players_not_me[player] = all_players[player];
+                }
+            }
+
+
             //todo filter
-            users[session].connection.sendUTF(JSON.stringify(galleries[users[session].gallery]));
+            users[session].connection.sendUTF(JSON.stringify(all_players_not_me));
 
         }else{
 
