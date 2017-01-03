@@ -82,6 +82,23 @@ wsServer.on('request', function(request) {
 
             if("gallery" in message){
                 user.gallery = message.gallery;
+
+
+
+
+                var all_players = galleries[users[session].gallery];
+                var all_players_not_me = {};
+                var player;
+
+                for(player in all_players){
+                    if(player!=session) {
+                        all_players_not_me[player] = all_players[player];
+                    }
+                }
+
+                connection.sendUTF(JSON.stringify(all_players_not_me));
+
+
             }
 
 
@@ -92,13 +109,55 @@ wsServer.on('request', function(request) {
                 galleries[user.gallery] = galleries[user.gallery] || {};
                 galleries[user.gallery][session] = galleries[user.gallery][session] || {};
 
+
+                var news_sub = {};
+                var news = {}
+                news[session] = news_sub;
+
+
                 ['name','message','position','rotation'].forEach(function (key) {
                     if(key in message){
+
+                        news_sub[key] = message[key];
                         galleries[user.gallery][session][key] = message[key];
+
                     }
                 });
 
-                galleries[user.gallery][session].timestamp = new Date()/1000;
+                news_sub.timestamp = new Date()/1000;
+                galleries[user.gallery][session].timestamp = news_sub.timestamp;
+
+
+
+
+                /*var all_users = users;
+                var all_users_not_me = {};
+                var user;*/
+
+
+                var all_users_not_me = {};
+                var userkey;
+
+                for(userkey in users){
+                    if(users[userkey].gallery==user.gallery && userkey!=session) {
+                        all_users_not_me[userkey] = users[userkey];
+                    }
+                }
+
+
+                console.log(all_users_not_me);
+
+
+
+
+                for(userkey in all_users_not_me){
+                    all_users_not_me[userkey].connection.sendUTF(JSON.stringify(news));
+                }
+
+
+
+
+
 
 
             }else{
@@ -128,7 +187,7 @@ wsServer.on('request', function(request) {
 
 
 //============================================================================Loop
-setInterval(function () {
+/*setInterval(function () {
 
     var all_players,all_players_not_me,player;
 
@@ -160,13 +219,13 @@ setInterval(function () {
     }
 
 
- },1000/config.fps);
+ },1000/config.fps);*/
 //============================================================================
 
 
 
 //============================================================================Garbage collector
-setInterval(function () {
+/*setInterval(function () {
 
     //console.log('Garbage collector running...');
     var timestamp = new Date()/1000;
@@ -194,7 +253,7 @@ setInterval(function () {
     }
 
 
-},1000*config.ttl);
+},1000*config.ttl);*/
 //============================================================================
 
 
