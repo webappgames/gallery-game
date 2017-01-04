@@ -143,6 +143,8 @@ wsServer.on('request', function(request) {
                 var user;*/
 
 
+
+                //-----------------------------------Notify other users
                 var all_users_not_me = {};
                 var userkey;
 
@@ -152,15 +154,14 @@ wsServer.on('request', function(request) {
                     }
                 }
 
-
                 //console.log(all_users_not_me);
-
-
 
 
                 for(userkey in all_users_not_me){
                     all_users_not_me[userkey].connection.sendUTF(JSON.stringify(news));
                 }
+
+                //-----------------------------------
 
 
 
@@ -187,7 +188,31 @@ wsServer.on('request', function(request) {
             delete galleries[user.gallery][session];
         }
 
+        var _gallery = user.gallery;
         delete users[session];
+
+
+        //-----------------------------------Notify other users
+        var news = {};
+        news[session] = null;
+
+        var all_remaining_users = {};
+        var userkey;
+
+        for(userkey in users){
+            if(users[userkey].gallery==_gallery) {
+                all_remaining_users[userkey] = users[userkey];
+            }
+        }
+
+
+        for(userkey in all_remaining_users){
+            all_remaining_users[userkey].connection.sendUTF(JSON.stringify(news));
+        }
+
+        //-----------------------------------
+
+
 
     });
 
