@@ -34,7 +34,7 @@ var galleries = {};
 
 
 
-
+/*
 function createGuid() {
     function s4() {
         return Math.floor((1 + Math.random()) * 0x10000)
@@ -43,6 +43,11 @@ function createGuid() {
     }
     return s4() + s4() + '-' + s4() + '-' + s4() + '-' +
         s4() + '-' + s4() + s4() + s4();
+}*/
+
+var _id = 0;
+function generateId(){
+    return _id++;
 }
 
 
@@ -53,7 +58,10 @@ wsServer.on('request', function(request) {
     var connection = request.accept(null, request.origin);
 
 
-    var session = createGuid();
+    var session = generateId();
+    console.log('Player '+session+' connected.');
+
+
     users[session] = {
         connection: connection,
         gallery: null
@@ -145,7 +153,7 @@ wsServer.on('request', function(request) {
                 }
 
 
-                console.log(all_users_not_me);
+                //console.log(all_users_not_me);
 
 
 
@@ -172,6 +180,8 @@ wsServer.on('request', function(request) {
 
 
     connection.on('close', function(connection) {
+
+        console.log('Player '+session+' disconected.');
 
         if(user.gallery) {
             delete galleries[user.gallery][session];
