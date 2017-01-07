@@ -8,6 +8,8 @@ var config = {
 
 };
 
+var fs = require("fs");
+var mkpath = require('mkpath');
 
 
 var WebSocketServer = require('websocket').server;
@@ -114,6 +116,15 @@ wsServer.on('request', function(request) {
             if(user.gallery){
 
 
+                if(user.gallery.indexOf('..')!==-1){
+
+                    connection.sendUTF(JSON.stringify({
+                        error: 'Gallery domain not valid.'
+                    }));
+                    return;
+                }
+
+
                 galleries[user.gallery] = galleries[user.gallery] || {};
                 galleries[user.gallery][session] = galleries[user.gallery][session] || {};
 
@@ -131,6 +142,54 @@ wsServer.on('request', function(request) {
 
                     }
                 });
+
+
+
+                if('message' in message){
+
+                    /*var dir = __dirname+'/messages/'+user.gallery;
+                    var file = dir+'/';*/
+
+                    var escaped_name = galleries[user.gallery][session].name
+                        .split('\\').join('\\\\')
+                        .split('\n').join('\\n')
+                        .split('[').join('\\[')
+                        .split(']').join('\\]');
+
+
+                    var escaped_message = message.message
+                        .split('\\').join('\\\\')
+                        .split('\n').join('\\n')
+                        .split('[').join('\\[')
+                        .split(']').join('\\]');
+
+
+                    var row = ''
+                        +'['+((new Date()).toString())+']'
+                        +'['+escaped_name+']'
+                        +escaped_message
+                        +'\n';
+
+                    mkpath(__dirname+'/messages', function (err) {
+
+                        if(err){
+                            console.log(err);
+                        }else {
+                            fs.appendFile(__dirname+'/messages/' + user.gallery + '.log', row, function (err) {
+                                if(err) {
+                                    console.log(err);
+                                }else{
+                                    //console.log(message.message);
+                                }
+                            });
+                        }
+                    });
+
+
+
+                }
+
+
 
                 news_sub.timestamp = new Date()/1000;
                 galleries[user.gallery][session].timestamp = news_sub.timestamp;
